@@ -88,11 +88,14 @@ pub fn decode_quaternion(encoded: [u8; 7]) -> (f32, f32, f32, f32) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::distributions::{Distribution, Uniform};
+    use rand::distributions::uniform::Uniform;
+    use rand::distributions::Distribution;
+    use rand::SeedableRng;
+    use rand_xoshiro::Xoshiro256StarStar;
 
     #[test]
     fn quaternions() {
-        let mut rng = rand::thread_rng();
+        let mut rng = Xoshiro256StarStar::from_entropy();
 
         let range = Uniform::new_inclusive(-1.0, 1.0);
 
@@ -128,8 +131,8 @@ mod tests {
 
     #[allow(clippy::many_single_char_names)]
     fn random_quaternion(
-        rng: &mut rand::rngs::ThreadRng,
-        range: &rand::distributions::uniform::Uniform<f32>,
+        rng: &mut Xoshiro256StarStar,
+        range: &Uniform<f32>,
     ) -> (f32, f32, f32, f32) {
         let (x, y, z) = loop {
             let x: f32 = range.sample(rng);

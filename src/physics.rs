@@ -59,11 +59,14 @@ pub fn decode_relative_position(encoded: [u8; 6]) -> (f32, f32, f32) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::distributions::{Distribution, Uniform};
+    use rand::distributions::uniform::Uniform;
+    use rand::distributions::Distribution;
+    use rand::SeedableRng;
+    use rand_xoshiro::Xoshiro256StarStar;
 
     #[test]
     fn absolute_position() {
-        let mut rng = rand::thread_rng();
+        let mut rng = Xoshiro256StarStar::from_entropy();
 
         let range = Uniform::new_inclusive(f32::MIN / 2.0, f32::MAX / 2.0);
 
@@ -94,7 +97,7 @@ mod tests {
 
     #[test]
     fn relative_position() {
-        let mut rng = rand::thread_rng();
+        let mut rng = Xoshiro256StarStar::from_entropy();
 
         let range = Uniform::new_inclusive(i16::MIN as f32, i16::MAX as f32);
 
@@ -125,7 +128,7 @@ mod tests {
 
     #[test]
     fn velocity() {
-        let mut rng = rand::thread_rng();
+        let mut rng = Xoshiro256StarStar::from_entropy();
 
         let range = Uniform::new_inclusive(0.0, 144.0);
 

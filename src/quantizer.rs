@@ -18,11 +18,14 @@ pub fn quantize_to_i16(value: f32, min: f32, max: f32) -> i16 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::distributions::{Distribution, Uniform};
+    use rand::distributions::uniform::Uniform;
+    use rand::distributions::Distribution;
+    use rand::SeedableRng;
+    use rand_xoshiro::Xoshiro256StarStar;
 
     #[test]
     fn random_to_u8() {
-        let mut rng = rand::thread_rng();
+        let mut rng = Xoshiro256StarStar::from_entropy();
 
         let min_range = Uniform::new(f32::MIN / 2.0, 0.0);
         let max_range = Uniform::new_inclusive(0.0, f32::MAX / 2.0);
@@ -58,7 +61,7 @@ mod tests {
 
     #[test]
     fn random_to_u16() {
-        let mut rng = rand::thread_rng();
+        let mut rng = Xoshiro256StarStar::from_entropy();
 
         let min_range = Uniform::new(f32::MIN / 2.0, 0.0);
         let max_range = Uniform::new_inclusive(0.0, f32::MAX / 2.0);
@@ -94,7 +97,7 @@ mod tests {
 
     #[test]
     fn random_to_i16() {
-        let mut rng = rand::thread_rng();
+        let mut rng = Xoshiro256StarStar::from_entropy();
 
         let min_range = Uniform::new(f32::MIN / 2.0, 0.0);
         let max_range = Uniform::new_inclusive(0.0, f32::MAX / 2.0);
