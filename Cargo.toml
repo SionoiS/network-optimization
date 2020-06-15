@@ -13,3 +13,6 @@ crate-type = ["dylib"]
 [dev-dependencies]
 rand = "0.7"
 rand_xoshiro = "0.4"
+
+[dependencies]
+nalgebra = "0.21"

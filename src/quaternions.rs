@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use nalgebra::{Quaternion, UnitQuaternion};
 use std::f32::consts::FRAC_1_SQRT_2;
 
 fn quantize_unit_quaternion_component_to_i16(value: f32) -> i16 {
@@ -11,23 +12,21 @@ fn unquantize_unit_quaternion_component_from_i16(value: i16) -> f32 {
 }
 
 /// Encode a quaternion into 7 bytes using smallest three technique.
-pub fn encode_quaternion(x: f32, y: f32, z: f32, w: f32) -> [u8; 7] {
-    let rotation = &[x, y, z, w];
-
+pub fn encode_quaternion(quaternion: UnitQuaternion<f32>) -> [u8; 7] {
     let mut largest_component_index = 0;
-    let mut largest_component_sign = x.is_sign_positive();
+    let mut largest_component_sign = quaternion.coords.x.is_sign_positive();
 
-    for i in 1..4 {
-        if rotation[i].abs() > rotation[largest_component_index].abs() {
+    for (i, value) in quaternion.coords.iter().enumerate() {
+        if value.abs() > quaternion.coords[largest_component_index].abs() {
             largest_component_index = i;
-            largest_component_sign = rotation[i].is_sign_positive();
+            largest_component_sign = value.is_sign_positive();
         }
     }
 
     let mut quantized_components = [largest_component_index as u8; 7];
 
     let mut index = 1;
-    for (i, value) in rotation.iter().enumerate() {
+    for (i, value) in quaternion.coords.iter().enumerate() {
         if i == largest_component_index {
             continue;
         }
@@ -52,11 +51,11 @@ pub fn encode_quaternion(x: f32, y: f32, z: f32, w: f32) -> [u8; 7] {
 }
 
 /// Decode 7 bytes into a quaternion using smallest three technique.
-pub fn decode_quaternion(encoded: [u8; 7]) -> (f32, f32, f32, f32) {
-    let mut quaternion = [0.0f32; 4];
+pub fn decode_quaternion(encoded: [u8; 7]) -> UnitQuaternion<f32> {
+    let mut quaternion = Quaternion::identity();
 
     let mut index = 1;
-    for (i, value) in quaternion.iter_mut().enumerate() {
+    for (i, value) in quaternion.coords.iter_mut().enumerate() {
         if i == encoded[0] as usize {
             *value = (1.0
                 - unquantize_unit_quaternion_component_from_i16(i16::from_be_bytes([
@@ -82,7 +81,7 @@ pub fn decode_quaternion(encoded: [u8; 7]) -> (f32, f32, f32, f32) {
         }
     }
 
-    (quaternion[0], quaternion[1], quaternion[2], quaternion[3])
+    UnitQuaternion::from_quaternion(quaternion)
 }
 
 #[cfg(test)]
@@ -104,19 +103,15 @@ mod tests {
         for _ in 0..1000000 {
             let before_quaternion = random_quaternion(&mut rng, &range);
 
-            let encoded = encode_quaternion(
-                before_quaternion.0,
-                before_quaternion.1,
-                before_quaternion.2,
-                before_quaternion.3,
-            );
+            let encoded = encode_quaternion(before_quaternion);
 
             let after_quaternion = decode_quaternion(encoded);
 
-            let status = (after_quaternion.0.abs() - before_quaternion.0.abs()) > precision
-                || (after_quaternion.1.abs() - before_quaternion.1.abs()) > precision
-                || (after_quaternion.2.abs() - before_quaternion.2.abs()) > precision
-                || (after_quaternion.3.abs() - before_quaternion.3.abs()) > precision;
+            let status = (after_quaternion.coords.x.abs() - before_quaternion.coords.x.abs())
+                > precision
+                || (after_quaternion.coords.y.abs() - before_quaternion.coords.y.abs()) > precision
+                || (after_quaternion.coords.z.abs() - before_quaternion.coords.z.abs()) > precision
+                || (after_quaternion.coords.w.abs() - before_quaternion.coords.w.abs()) > precision;
 
             if status {
                 println!(
@@ -133,7 +128,7 @@ mod tests {
     fn random_quaternion(
         rng: &mut Xoshiro256StarStar,
         range: &Uniform<f32>,
-    ) -> (f32, f32, f32, f32) {
+    ) -> UnitQuaternion<f32> {
         let (x, y, z) = loop {
             let x: f32 = range.sample(rng);
             let y: f32 = range.sample(rng);
@@ -160,6 +155,13 @@ mod tests {
 
         let s: f32 = ((1.0 - z) / w).sqrt();
 
-        (x, y, s * u, s * v)
+        let mut quaternion = Quaternion::identity();
+
+        quaternion.coords.x = x;
+        quaternion.coords.y = y;
+        quaternion.coords.z = s * u;
+        quaternion.coords.w = s * v;
+
+        UnitQuaternion::from_quaternion(quaternion)
     }
 }
